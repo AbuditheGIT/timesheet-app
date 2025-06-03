@@ -13,7 +13,7 @@ const Header = styled.header`
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   padding: 1rem 2rem;
   display: flex;
-  justify-content: between;
+  justify-content: space-between;
   align-items: center;
 `;
 
@@ -164,46 +164,52 @@ const Dashboard: React.FC = () => {
     navigate('/login');
   };
 
-  const quickActions = [
-    {
-      title: 'Log Time',
-      description: 'Record your work hours for today',
-      onClick: () => navigate('/timesheet')
-    },
-    {
-      title: 'View Reports',
-      description: 'See your timesheet history and analytics',
-      onClick: () => navigate('/reports')
-    }
-  ];
-
-  // Add role-specific actions
-  if (user?.role === 'ADMIN') {
-    quickActions.push(
+  // Create role-based quick actions
+  const getQuickActions = () => {
+    const baseActions = [
       {
-        title: 'Admin Panel',
-        description: 'Manage users, teams, and system settings',
-        onClick: () => navigate('/admin')
+        title: 'Log Time',
+        description: 'Record your work hours for today',
+        onClick: () => navigate('/timesheet')
       },
       {
-        title: 'Manager Tools',
-        description: 'Access manager dashboard and team oversight',
-        onClick: () => navigate('/manager')
+        title: 'View Reports',
+        description: 'See your timesheet history and analytics',
+        onClick: () => navigate('/reports')
       }
-    );
-  } else if (user?.role === 'MANAGER') {
-    quickActions.push({
-      title: 'Manage Team',
-      description: 'View and manage your team\'s timesheets',
-      onClick: () => navigate('/manager')
-    });
-  }
+    ];
 
-  quickActions.push({
-    title: 'Manage Projects',
-    description: 'View and manage your assigned projects',
-    onClick: () => alert('Project management coming soon!')
-  });
+    // Add role-specific actions
+    if (user?.role === 'ADMIN') {
+      return [
+        ...baseActions,
+        {
+          title: 'Admin Panel',
+          description: 'Manage users and projects',
+          onClick: () => navigate('/admin')
+        },
+        {
+          title: 'Team Management',
+          description: 'View and manage team timesheets',
+          onClick: () => navigate('/manager')
+        }
+      ];
+    } else if (user?.role === 'MANAGER') {
+      return [
+        ...baseActions,
+        {
+          title: 'Team Management',
+          description: 'View and manage your team\'s timesheets',
+          onClick: () => navigate('/manager')
+        }
+      ];
+    }
+
+    // Team members only get base actions
+    return baseActions;
+  };
+
+  const quickActions = getQuickActions();
 
   return (
     <DashboardContainer>

@@ -5,6 +5,7 @@ import com.servicesymphony.timesheet.dto.UserDto
 import com.servicesymphony.timesheet.exception.BadRequestException
 import com.servicesymphony.timesheet.exception.ResourceNotFoundException
 import com.servicesymphony.timesheet.model.User
+import com.servicesymphony.timesheet.model.Role
 import com.servicesymphony.timesheet.repository.ProjectRepository
 import com.servicesymphony.timesheet.repository.UserRepository
 import org.springframework.security.crypto.password.PasswordEncoder
@@ -40,12 +41,19 @@ class UserService(
             emptySet()
         }
 
+        // Convert string role to Role enum
+        val roleEnum = try {
+            Role.valueOf(request.role.uppercase())
+        } catch (e: IllegalArgumentException) {
+            throw BadRequestException("Invalid role: ${request.role}. Valid roles are: ADMIN, MANAGER, TEAM_MEMBER")
+        }
+
         val user = User(
             email = request.email,
             firstName = request.firstName,
             lastName = request.lastName,
             password = passwordEncoder.encode(request.password),
-            role = request.role,
+            role = roleEnum, // Use the converted enum instead of request.role
             assignedProjects = projects
         )
 

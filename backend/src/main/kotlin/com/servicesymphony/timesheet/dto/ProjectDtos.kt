@@ -35,3 +35,14 @@ data class CreateProjectRequest(
     val endDate: LocalDate?,
     val assignedUserIds: Set<Long> = emptySet()
 )
+
+data class UpdateProjectRequest(
+    val name: String?,
+    val description: String?,
+    val clientName: String?,
+    val hourlyRate: BigDecimal?,
+    val startDate: LocalDate?,
+    val endDate: LocalDate?,
+    val isActive: Boolean?,
+    val assignedUserIds: Set<Long>?
+)

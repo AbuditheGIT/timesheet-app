@@ -6,6 +6,7 @@ import com.servicesymphony.timesheet.dto.WeeklyStats
 import com.servicesymphony.timesheet.exception.BadRequestException
 import com.servicesymphony.timesheet.exception.ResourceNotFoundException
 import com.servicesymphony.timesheet.model.TimesheetEntry
+import com.servicesymphony.timesheet.model.Role
 import com.servicesymphony.timesheet.repository.ProjectRepository
 import com.servicesymphony.timesheet.repository.TimesheetEntryRepository
 import com.servicesymphony.timesheet.repository.UserRepository
@@ -26,15 +27,44 @@ class TimesheetService(
 ) {
 
     fun createTimesheetEntry(userId: Long, request: CreateTimesheetEntryRequest): TimesheetEntryDto {
-        val user = userRepository.findById(userId)
+        // Use the new method that fetches projects eagerly
+        val user = userRepository.findByIdWithProjects(userId)
             .orElseThrow { ResourceNotFoundException("User not found with id: $userId") }
 
         val project = projectRepository.findById(request.projectId)
             .orElseThrow { ResourceNotFoundException("Project not found with id: ${request.projectId}") }
 
-        // Check if user is assigned to this project
-        if (!user.assignedProjects.contains(project)) {
-            throw BadRequestException("User is not assigned to project: ${project.name}")
+        // DEBUG: Let's see what's happening
+        println("DEBUG: User ID: ${user.id}, Email: ${user.email}, Role: ${user.role}")
+        println("DEBUG: Project ID: ${project.id}, Name: ${project.name}")
+        println("DEBUG: User assigned projects count: ${user.assignedProjects.size}")
+        println("DEBUG: User assigned project IDs: ${user.assignedProjects.map { it.id }}")
+        println("DEBUG: Requested project ID: ${request.projectId}")
+
+        // Role-based project access check
+        val canAccessProject = when (user.role) {
+            Role.ADMIN, Role.MANAGER -> {
+                // Admins and Managers can log time to any active project
+                println("DEBUG: Admin/Manager can access any project")
+                project.isActive
+            }
+            Role.TEAM_MEMBER -> {
+                // Team members can only log time to assigned projects
+                val hasAccess = user.assignedProjects.contains(project)
+                println("DEBUG: Team member access check: $hasAccess")
+                hasAccess
+            }
+        }
+
+        if (!canAccessProject) {
+            when (user.role) {
+                Role.ADMIN, Role.MANAGER -> {
+                    throw BadRequestException("Cannot log time to inactive project: ${project.name}")
+                }
+                Role.TEAM_MEMBER -> {
+                    throw BadRequestException("User is not assigned to project: ${project.name}")
+                }
+            }
         }
 
         // Check if entry already exists for this user/project/date

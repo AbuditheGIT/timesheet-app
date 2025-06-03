@@ -154,6 +154,15 @@ const ErrorMessage = styled.div`
   margin-bottom: 1rem;
 `;
 
+const LoadingMessage = styled.div`
+  background: #e0f2fe;
+  color: #0077aa;
+  padding: 12px;
+  border-radius: 8px;
+  text-align: center;
+  margin-bottom: 1rem;
+`;
+
 const TimeEntry: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -166,32 +175,50 @@ const TimeEntry: React.FC = () => {
   });
   
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingProjects, setIsLoadingProjects] = useState(true);
   const [message, setMessage] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
   const [projects, setProjects] = useState([]);
 
-  // Load user's projects
+  // Load user's assigned projects
   useEffect(() => {
-    loadProjects();
+    loadAssignedProjects();
   }, []);
 
-  const loadProjects = async () => {
+  const loadAssignedProjects = async () => {
     try {
-      const projectsData = await projectsApi.getMyProjects();
-      setProjects(projectsData);
+      setIsLoadingProjects(true);
+      console.log('Loading projects for user role:', user?.role);
+      
+      let assignedProjects;
+      
+      // Admins and Managers can see all projects, Team Members only see assigned ones
+      if (user?.role === 'ADMIN' || user?.role === 'MANAGER') {
+        assignedProjects = await projectsApi.getAllProjects();
+        console.log('Loaded all projects for admin/manager:', assignedProjects);
+      } else {
+        assignedProjects = await projectsApi.getMyProjects();
+        console.log('Loaded assigned projects for team member:', assignedProjects);
+      }
+      
+      setProjects(assignedProjects);
+      
+      if (assignedProjects.length === 0) {
+        if (user?.role === 'ADMIN') {
+          setMessage('No projects exist. Create a project first.');
+        } else {
+          setMessage('You are not assigned to any projects. Please contact your administrator.');
+        }
+        setIsSuccess(false);
+      }
     } catch (error) {
-      console.error('Failed to load projects:', error);
-      setMessage('Failed to load projects. Please refresh the page.');
+      console.error('Error loading projects:', error);
+      setMessage('Failed to load projects. Please try again.');
       setIsSuccess(false);
+    } finally {
+      setIsLoadingProjects(false);
     }
   };
-
-  // Mock projects for now - in real app, these would come from API
-  const mockProjects = [
-    { id: 1, name: 'Service Symphony Development' },
-    { id: 2, name: 'Client Portal Updates' },
-    { id: 3, name: 'Mobile App Enhancement' }
-  ];
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     setFormData({
@@ -213,6 +240,8 @@ const TimeEntry: React.FC = () => {
         notes: formData.notes || null
       };
 
+      console.log('Submitting timesheet entry:', entryData);
+      
       await timesheetApi.createEntry(entryData);
       
       setIsSuccess(true);
@@ -226,9 +255,10 @@ const TimeEntry: React.FC = () => {
         notes: ''
       });
       
-    } catch (error) {
+    } catch (error: any) {
       setIsSuccess(false);
-      setMessage('Failed to save time entry. Please try again.');
+      const errorMessage = error.message || 'Failed to save time entry. Please try again.';
+      setMessage(errorMessage);
       console.error('Error saving time entry:', error);
     } finally {
       setIsLoading(false);
@@ -248,6 +278,10 @@ const TimeEntry: React.FC = () => {
         <FormCard>
           <h2 style={{ marginTop: 0, color: '#1e293b' }}>Record Your Work Hours</h2>
           
+          {isLoadingProjects && (
+            <LoadingMessage>Loading your assigned projects...</LoadingMessage>
+          )}
+          
           {message && (
             isSuccess ? 
               <SuccessMessage>{message}</SuccessMessage> : 
@@ -263,9 +297,14 @@ const TimeEntry: React.FC = () => {
                 value={formData.projectId}
                 onChange={handleInputChange}
                 required
+                disabled={isLoadingProjects || projects.length === 0}
               >
-                <option value="">Select a project...</option>
-                {(projects.length > 0 ? projects : mockProjects).map((project: any) => (
+                <option value="">
+                  {isLoadingProjects ? 'Loading projects...' : 
+                   projects.length === 0 ? 'No projects assigned' : 
+                   'Select a project...'}
+                </option>
+                {projects.map((project: any) => (
                   <option key={project.id} value={project.id}>
                     {project.name}
                   </option>
@@ -312,7 +351,10 @@ const TimeEntry: React.FC = () => {
               />
             </FormGroup>
 
-            <SubmitButton type="submit" disabled={isLoading}>
+            <SubmitButton 
+              type="submit" 
+              disabled={isLoading || isLoadingProjects || projects.length === 0}
+            >
               {isLoading ? 'Saving...' : 'Save Time Entry'}
             </SubmitButton>
           </Form>

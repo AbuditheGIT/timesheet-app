@@ -8,11 +8,11 @@ import org.springframework.stereotype.Repository
 
 @Repository
 interface ProjectRepository : JpaRepository<Project, Long> {
+    
     fun findByIsActiveTrue(): List<Project>
-    fun findByClientName(clientName: String): List<Project>
+    
+    fun existsByName(name: String): Boolean
     
     @Query("SELECT p FROM Project p JOIN p.assignedUsers u WHERE u.id = :userId AND p.isActive = true")
     fun findActiveProjectsByUserId(@Param("userId") userId: Long): List<Project>
-    
-    fun existsByName(name: String): Boolean
 }

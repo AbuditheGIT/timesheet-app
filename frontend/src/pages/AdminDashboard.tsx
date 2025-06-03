@@ -206,7 +206,8 @@ const AdminDashboard: React.FC = () => {
     name: '',
     clientName: '',
     description: '',
-    hourlyRate: ''
+    hourlyRate: '',
+    assignedUserIds: [] as number[]
   });
 
   // Redirect if not admin
@@ -265,11 +266,12 @@ const AdminDashboard: React.FC = () => {
     try {
       const projectData = {
         ...newProject,
-        hourlyRate: newProject.hourlyRate ? parseFloat(newProject.hourlyRate) : null
+        hourlyRate: newProject.hourlyRate ? parseFloat(newProject.hourlyRate) : null,
+        assignedUserIds: newProject.assignedUserIds
       };
       await projectsApi.createProject(projectData);
       setMessage({ text: 'Project created successfully!', type: 'success' });
-      setNewProject({ name: '', clientName: '', description: '', hourlyRate: '' });
+      setNewProject({ name: '', clientName: '', description: '', hourlyRate: '', assignedUserIds: [] });
       loadProjects();
     } catch (error) {
       setMessage({ text: 'Failed to create project. Please try again.', type: 'error' });
@@ -427,6 +429,25 @@ const AdminDashboard: React.FC = () => {
                     onChange={(e) => setNewProject({...newProject, hourlyRate: e.target.value})}
                   />
                 </FormGroup>
+                <FormGroup>
+                  <Label>Assign Users (Optional)</Label>
+                  <Select
+                    multiple
+                    value={newProject.assignedUserIds.map(String)}
+                    onChange={(e) => {
+                      const selectedIds = Array.from(e.target.selectedOptions, option => parseInt(option.value));
+                      setNewProject({...newProject, assignedUserIds: selectedIds});
+                    }}
+                    style={{ minHeight: '100px' }}
+                  >
+                    {users.map((user: any) => (
+                      <option key={user.id} value={user.id}>
+                        {user.fullName} ({user.role})
+                      </option>
+                    ))}
+                  </Select>
+                  <small style={{ color: '#64748b' }}>Hold Ctrl/Cmd to select multiple users</small>
+                </FormGroup>
                 <Button type="submit" disabled={loading}>
                   {loading ? 'Creating...' : 'Create Project'}
                 </Button>
@@ -439,6 +460,7 @@ const AdminDashboard: React.FC = () => {
                     <Th>Project Name</Th>
                     <Th>Client</Th>
                     <Th>Hourly Rate</Th>
+                    <Th>Assigned Users</Th>
                     <Th>Status</Th>
                   </tr>
                 </thead>
@@ -448,6 +470,7 @@ const AdminDashboard: React.FC = () => {
                       <Td>{project.name}</Td>
                       <Td>{project.clientName}</Td>
                       <Td>${project.hourlyRate || 'N/A'}</Td>
+                      <Td>{project.assignedUserIds?.length || 0} users</Td>
                       <Td>{project.isActive ? 'Active' : 'Inactive'}</Td>
                     </tr>
                   ))}

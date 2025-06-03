@@ -1,0 +1,20 @@
+# Build folders
+backend/build/
+backend/.gradle/
+frontend/build/
+frontend/node_modules/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Environment
+.env

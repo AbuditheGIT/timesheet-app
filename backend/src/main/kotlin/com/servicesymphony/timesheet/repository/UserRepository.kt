@@ -17,6 +17,9 @@ interface UserRepository : JpaRepository<User, Long> {
     
     @Query("SELECT u FROM User u WHERE u.team.manager.id = :managerId")
     fun findTeamMembersByManagerId(@Param("managerId") managerId: Long): List<User>
+
+    @Query("SELECT u FROM User u LEFT JOIN FETCH u.assignedProjects WHERE u.id = :id") 
+    fun findByIdWithProjects(id: Long): Optional<User>
     
     fun existsByEmail(email: String): Boolean
 }

@@ -35,7 +35,9 @@ data class CreateUserRequest(
     @field:Size(min = 6, message = "Password must be at least 6 characters")
     val password: String,
     
-    val role: Role = Role.TEAM_MEMBER,
+    @field:NotBlank(message = "Role is required")
+    val role: String,
+    
     val teamId: Long? = null,
     val assignedProjectIds: Set<Long> = emptySet()
 )
